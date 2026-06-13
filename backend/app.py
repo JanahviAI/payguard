@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -8,6 +9,7 @@ from blockchain import BlockchainError, refund_payment, release_payment
 from models import Job, db
 
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 
 VALID_STATUSES = {
@@ -97,12 +99,14 @@ def create_app():
 
             db.session.commit()
             return jsonify(job.to_dict())
-        except (ValueError, KeyError) as exc:
+        except (ValueError, KeyError):
             db.session.rollback()
-            return jsonify({"error": f"AI evaluation failed: {exc}"}), 502
-        except BlockchainError as exc:
+            app.logger.exception("AI evaluation failed")
+            return jsonify({"error": "AI evaluation failed"}), 502
+        except BlockchainError:
             db.session.rollback()
-            return jsonify({"error": f"Blockchain transaction failed: {exc}"}), 502
+            app.logger.exception("Blockchain transaction failed")
+            return jsonify({"error": "Blockchain transaction failed"}), 502
 
     @app.post("/api/jobs/<int:job_id>/decide")
     def decide(job_id):
@@ -122,9 +126,10 @@ def create_app():
 
             db.session.commit()
             return jsonify(job.to_dict())
-        except BlockchainError as exc:
+        except BlockchainError:
             db.session.rollback()
-            return jsonify({"error": f"Blockchain transaction failed: {exc}"}), 502
+            app.logger.exception("Blockchain transaction failed")
+            return jsonify({"error": "Blockchain transaction failed"}), 502
 
     @app.errorhandler(404)
     def not_found(_):
@@ -141,4 +146,4 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=True)
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 5000)), debug=False)

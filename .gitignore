@@ -1,0 +1,16 @@
+node_modules/
+venv/
+.env
+*.env
+.env.*
+!.env.example
+dist/
+build/
+.DS_Store
+__pycache__/
+*.pyc
+frontend/node_modules/
+contract/node_modules/
+
+*.db
+instance/
